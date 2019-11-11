@@ -58,6 +58,8 @@ public class GhostAI : MonoBehaviour {
     private const float ogWaitTime = .1f;
 	public int range = 0;                   // This could be a tunable number
 
+    public float chaseTime = 0f;
+
     public bool dead = false;               // state variables
 	public bool fleeing = false;
 
@@ -97,7 +99,7 @@ public class GhostAI : MonoBehaviour {
 	public int[] choices ;
 	public float choice;
 
-    public int currentDir;
+    public int prevDir;
 
     public float differenceX, differenceY;
 	public enum State{
@@ -175,9 +177,19 @@ public class GhostAI : MonoBehaviour {
             }
             break;
         case (State.active):
-                target = pacMan;
-                Debug.Log("Active");
-            chaseTarget();
+            target = pacMan;
+            Debug.Log("Active");
+            getDirections();
+            if (chaseTime == 0f || (prevChoices == choices))
+                    
+            {
+                chaseTarget();
+            }
+
+            if (chaseTime > 1f) chaseTime = 0f;
+            else chaseTime += Time.deltaTime;
+            
+            
             if (dead) {
             // etc.
             // most of your AI code will be placed here!
@@ -213,6 +225,7 @@ public class GhostAI : MonoBehaviour {
 	}
     void getDirections()
     {
+        prevChoices = choices;
         for (int i = 0; i < 4; i++)
         {
             if (gameObject.GetComponent<Movement>().checkDirectionClear(num2vec(i)))
@@ -227,7 +240,7 @@ public class GhostAI : MonoBehaviour {
     }
     void chaseTarget()
     {
-        getDirections();
+        
         differenceX = transform.position.x - target.transform.position.x;
         differenceY = transform.position.y - target.transform.position.y;
         if (differenceY < 0 && choices.Contains(0))
@@ -235,29 +248,32 @@ public class GhostAI : MonoBehaviour {
 
             move._dir = Movement.Direction.up;
         }
-        else if (differenceX < 0 && choices.Contains(1))
+        else if (differenceX < 0.1f && choices.Contains(1))
         {
             if (Mathf.Abs(differenceX) > Mathf.Abs(differenceY))
             {
                 move._dir = Movement.Direction.right;
             }
-            else if (differenceY > 0 && !choices.Contains(2))
+            else if (differenceY > 0.1f && choices.Contains(2))
             {
-                while (!choices.Contains(2))
-                {
-                    move._dir = Movement.Direction.right;
-                }
-                //move._dir = Movement.Direction.down;
+                move._dir = Movement.Direction.down;
             }
+            else if (differenceY > 0.1f && !choices.Contains(2))
+            {
+                move._dir = Movement.Direction.right;
+            }
+            else move._dir = Movement.Direction.right;
         }
-        else if (differenceY > 0 && choices.Contains(2))
+        else if (differenceY > 0.1f && choices.Contains(2))
         {
             move._dir = Movement.Direction.down;
         }
-        else if (differenceX > 0 && choices.Contains(3))
+        else if (differenceX > 0.1f && choices.Contains(3))
         {
             move._dir = Movement.Direction.left;
         }
+        
+        
     }
     
     // Utility routines
