@@ -172,6 +172,13 @@ public class GhostAI : MonoBehaviour {
 
 			break;
 
+        case (State.fleeing):
+             break;
+
+        case (State.scatter):
+            break;
+
+
 		case State.entering:
 
             // Leaving this code in here for you.
@@ -220,4 +227,30 @@ public class GhostAI : MonoBehaviour {
 		}
 		return true;
 	}
+
+    void activeBehavior() {
+        switch (ghostID) {
+            case 1:
+                break;
+            case 2:
+                break;
+            case 3:
+                break;
+            case 4:
+                break;
+        }
+    }
+
+    void fleeingBehavior() {
+        switch (ghostID) {
+            case 1:
+                break;
+            case 2:
+                break;
+            case 3:
+                break;
+            case 4:
+                break;
+        }
+    }
 }
