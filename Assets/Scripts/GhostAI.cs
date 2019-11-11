@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 /*****************************************************************************
@@ -96,6 +97,9 @@ public class GhostAI : MonoBehaviour {
 	public int[] choices ;
 	public float choice;
 
+    public int currentDir;
+
+    public float differenceX, differenceY;
 	public enum State{
 		waiting,
 		entering,
@@ -118,6 +122,7 @@ public class GhostAI : MonoBehaviour {
 		gate = GameObject.Find("Gate(Clone)");
 		pacMan = GameObject.Find("PacMan(Clone)") ? GameObject.Find("PacMan(Clone)") : GameObject.Find("PacMan 1(Clone)");
 		releaseTimeReset = releaseTime;
+        choices = new int[4];
 	}
 
 	public void restart(){
@@ -136,9 +141,11 @@ public class GhostAI : MonoBehaviour {
 	void Update () {
 		switch (_state) {
 		case(State.waiting):
+            //releaseTime += Time.deltaTime;
+            Debug.Log("Waiting");
 
             // below is some sample code showing how you deal with animations, etc.
-			move._dir = Movement.Direction.still;
+            move._dir = Movement.Direction.still;
 			if (releaseTime <= 0f) {
 				chooseDirection = true;
 				gameObject.GetComponent<Animator>().SetBool("Dead", false);
@@ -160,22 +167,33 @@ public class GhostAI : MonoBehaviour {
 
 
 		case(State.leaving):
-
-			break;
-
-		case(State.active):
-            if (dead) {
-                // etc.
-                // most of your AI code will be placed here!
+            Debug.Log("Leaving");
+            target = gate;
+            if (releaseTime <= 1f)
+            {
+                _state = State.active;
             }
+            break;
+        case (State.active):
+                target = pacMan;
+                Debug.Log("Active");
+            chaseTarget();
+            if (dead) {
             // etc.
-
-			break;
+            // most of your AI code will be placed here!
+            }
+            if (gameObject.GetComponent<Movement>().MSpeed == 0)
+                {
+                    Debug.Log("Stopped");
+                }
+            // etc.
+            
+		    break;
 
 		case State.entering:
-
+            Debug.Log("Entering");
             // Leaving this code in here for you.
-			move._dir = Movement.Direction.still;
+            move._dir = Movement.Direction.still;
 
 			if (transform.position.x < 13.48f || transform.position.x > 13.52) {
 				//print ("GOING LEFT OR RIGHT");
@@ -193,7 +211,55 @@ public class GhostAI : MonoBehaviour {
             break;
 		}
 	}
+    void getDirections()
+    {
+        for (int i = 0; i < 4; i++)
+        {
+            if (gameObject.GetComponent<Movement>().checkDirectionClear(num2vec(i)))
+            {
+                choices[i] = i;
+            }
+            else
+            {
+                choices[i] = -1;
+            }
+        }
+    }
+    void chaseTarget()
+    {
+        getDirections();
+        differenceX = transform.position.x - target.transform.position.x;
+        differenceY = transform.position.y - target.transform.position.y;
+        if (differenceY < 0 && choices.Contains(0))
+        {
 
+            move._dir = Movement.Direction.up;
+        }
+        else if (differenceX < 0 && choices.Contains(1))
+        {
+            if (Mathf.Abs(differenceX) > Mathf.Abs(differenceY))
+            {
+                move._dir = Movement.Direction.right;
+            }
+            else if (differenceY > 0 && !choices.Contains(2))
+            {
+                while (!choices.Contains(2))
+                {
+                    move._dir = Movement.Direction.right;
+                }
+                //move._dir = Movement.Direction.down;
+            }
+        }
+        else if (differenceY > 0 && choices.Contains(2))
+        {
+            move._dir = Movement.Direction.down;
+        }
+        else if (differenceX > 0 && choices.Contains(3))
+        {
+            move._dir = Movement.Direction.left;
+        }
+    }
+    
     // Utility routines
 
 	Vector2 num2vec(int n){
