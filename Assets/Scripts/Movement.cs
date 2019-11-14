@@ -18,6 +18,8 @@ public class Movement : MonoBehaviour {
 	public string[] Map;
 	public Direction _dir = Direction.still;
 
+    int prevDir;
+
 	public float MSpeed = 2f;
 
 	private Vector2 direc= new Vector2(0f,0f);
@@ -117,4 +119,26 @@ public class Movement : MonoBehaviour {
 		}
 		return true;
 	}
+
+    public int checkOrientation()
+    {
+        return animator.GetInteger("Direction");
+    }
+    public int checkOppositeDirection()
+    {
+        switch (_dir)
+        {
+            case Direction.still:
+                return -1;
+            case Direction.down:
+                return 0;
+            case Direction.up:
+                return 2;
+            case Direction.left:
+                return 1;
+            case Direction.right:
+                return 3;
+        }
+        return -1;
+    }
 }

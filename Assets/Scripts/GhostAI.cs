@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 /*****************************************************************************
@@ -57,6 +58,9 @@ public class GhostAI : MonoBehaviour {
     private const float ogWaitTime = .1f;
 	public int range = 0;                   // This could be a tunable number
 
+    public float chaseTime = 0f;
+    public float gateTime = 0f;
+
     public bool dead = false;               // state variables
 	public bool fleeing = false;
 
@@ -89,14 +93,19 @@ public class GhostAI : MonoBehaviour {
 
     // This will be PacMan when chasing, or Gate, when leaving the Pit
 	public GameObject target;
+    public Vector2 targetLocation;
 	GameObject gate;
+    GameObject[] gates;
 	GameObject pacMan;
 
 	public bool chooseDirection = true;
 	public int[] choices ;
 	public float choice;
+    public float differenceX, differenceY;
+    public int prevDir;
 
-	public enum State{
+
+    public enum State{
 		waiting,
 		entering,
 		leaving,
@@ -118,7 +127,9 @@ public class GhostAI : MonoBehaviour {
 		gate = GameObject.Find("Gate(Clone)");
 		pacMan = GameObject.Find("PacMan(Clone)") ? GameObject.Find("PacMan(Clone)") : GameObject.Find("PacMan 1(Clone)");
 		releaseTimeReset = releaseTime;
-	}
+        choices = new int[4];
+        gates = GameObject.FindGameObjectsWithTag("gate");
+    }
 
 	public void restart(){
 		releaseTime = releaseTimeReset;
@@ -134,72 +145,118 @@ public class GhostAI : MonoBehaviour {
     /// 
     /// </summary>
 	void Update () {
-		switch (_state) {
-		case(State.waiting):
+        switch (_state){
+        case (State.waiting):
+            //releaseTime += Time.deltaTime;
+            Debug.Log("Waiting");
 
             // below is some sample code showing how you deal with animations, etc.
-			move._dir = Movement.Direction.still;
-			if (releaseTime <= 0f) {
-				chooseDirection = true;
-				gameObject.GetComponent<Animator>().SetBool("Dead", false);
-				gameObject.GetComponent<Animator>().SetBool("Running", false);
-				gameObject.GetComponent<Animator>().SetInteger ("Direction", 0);
-				gameObject.GetComponent<Movement> ().MSpeed = 5f;
+            move._dir = Movement.Direction.still;
+            if (releaseTime <= 0f)
+            {
+                chooseDirection = true;
+                gameObject.GetComponent<Animator>().SetBool("Dead", false);
+                gameObject.GetComponent<Animator>().SetBool("Running", false);
+                gameObject.GetComponent<Animator>().SetInteger("Direction", 0);
+                gameObject.GetComponent<Movement>().MSpeed = 5f;
 
-				_state = State.leaving;
+                _state = State.leaving;
 
                 // etc.
-			}
-			gameObject.GetComponent<Animator>().SetBool("Dead", false);
-			gameObject.GetComponent<Animator>().SetBool("Running", false);
-			gameObject.GetComponent<Animator>().SetInteger ("Direction", 0);
-			gameObject.GetComponent<Movement> ().MSpeed = 5f;
-			releaseTime -= Time.deltaTime;
+            }
+            gameObject.GetComponent<Animator>().SetBool("Dead", false);
+            gameObject.GetComponent<Animator>().SetBool("Running", false);
+            gameObject.GetComponent<Animator>().SetInteger("Direction", 0);
+            gameObject.GetComponent<Movement>().MSpeed = 5f;
+            releaseTime -= Time.deltaTime;
             // etc.
-			break;
+            break;
 
 
-		case(State.leaving):
+        case (State.leaving):
+            if (gate.activeSelf)
+            {
+                for (int i = 0; i < gates.Length; i++)
+                {
+                    gates[i].SetActive(false);
+                }
+            }
+                getDirections();
+            gateTime += Time.deltaTime;
+            Debug.Log("Leaving");
+            target = gate;
+            targetLocation = new Vector2(13.5f, -11f);
+            
+            differenceX = transform.position.x - targetLocation.x;
+            differenceY = transform.position.y - targetLocation.y;
+            chaseTarget();
+            if (transform.position.y >= -11f)
+            {
+                _state = State.active;
+            }
+            break;
+        case (State.active):
+            if (!gate.activeSelf && gateTime >= 1f)
+            {
+                for (int i = 0; i < gates.Length; i++)
+                {
+                    gates[i].SetActive(false);
+                }
+                gateTime = 0f;
+            }
+            else
+            {
+                gateTime += Time.deltaTime;
+            }
+            target = pacMan;
+            Debug.Log("Active");
+            getDirections();
+            activeBehavior();
+            
 
-			break;
+            if (chaseTime > 1f) chaseTime = 0f;
+            else chaseTime += Time.deltaTime;
 
-		case(State.active):
-            if (dead) {
+
+            if (dead)
+            {
                 // etc.
                 // most of your AI code will be placed here!
             }
+            if (gameObject.GetComponent<Movement>().MSpeed == 0)
+            {
+                Debug.Log("Stopped");
+            }
             // etc.
 
-			break;
-
-        case (State.fleeing):
-             break;
-
-        case (State.scatter):
             break;
 
-
-		case State.entering:
-
+        case State.entering:
+            Debug.Log("Entering");
             // Leaving this code in here for you.
-			move._dir = Movement.Direction.still;
+            move._dir = Movement.Direction.still;
 
-			if (transform.position.x < 13.48f || transform.position.x > 13.52) {
-				//print ("GOING LEFT OR RIGHT");
-				transform.position = Vector3.Lerp (transform.position, new Vector3 (13.5f, transform.position.y, transform.position.z), 3f * Time.deltaTime);
-			} else if (transform.position.y > -13.99f || transform.position.y < -14.01f) {
-				gameObject.GetComponent<Animator>().SetInteger ("Direction", 2);
-				transform.position = Vector3.Lerp (transform.position, new Vector3 (transform.position.x, -14f, transform.position.z), 3f * Time.deltaTime);
-			} else {
-				fleeing = false;
-				dead = false;
-				gameObject.GetComponent<Animator>().SetBool("Running", true);
-				_state = State.waiting;
-			}
+            if (transform.position.x < 13.48f || transform.position.x > 13.52)
+            {
+                //print ("GOING LEFT OR RIGHT");
+                transform.position = Vector3.Lerp(transform.position, new Vector3(13.5f, transform.position.y, transform.position.z), 3f * Time.deltaTime);
+            }
+            else if (transform.position.y > -13.99f || transform.position.y < -14.01f)
+            {
+                gameObject.GetComponent<Animator>().SetInteger("Direction", 2);
+                transform.position = Vector3.Lerp(transform.position, new Vector3(transform.position.x, -14f, transform.position.z), 3f * Time.deltaTime);
+            }
+            else
+            {
+                fleeing = false;
+                dead = false;
+                gameObject.GetComponent<Animator>().SetBool("Running", true);
+                _state = State.waiting;
+            }
 
             break;
-		}
-	}
+        }
+    }
 
     // Utility routines
 
@@ -218,8 +275,22 @@ public class GhostAI : MonoBehaviour {
                 return new Vector2(0, 0);
         }
 	}
-
-	bool compareDirections(bool[] n, bool[] p){
+    void getDirections()
+    {
+        prevChoices = choices;
+        for (int i = 0; i < 4; i++)
+        {
+            if (gameObject.GetComponent<Movement>().checkDirectionClear(num2vec(i)) && i!=prevDir)
+            {
+                choices[i] = i;
+            }
+            else
+            {
+                choices[i] = -1;
+            }
+        }
+    }
+    bool compareDirections(bool[] n, bool[] p){
 		for(int i = 0; i < n.Length; i++){
 			if (n [i] != p [i]) {
 				return false;
@@ -230,9 +301,36 @@ public class GhostAI : MonoBehaviour {
 
     void activeBehavior() {
         switch (ghostID) {
+            //Blinky
             case 1:
+                differenceX = transform.position.x - target.transform.position.x;
+                differenceY = transform.position.y - target.transform.position.y;
+                chaseTarget();
                 break;
+            //Pinky
             case 2:
+                int direction = pacMan.GetComponent<PlayerMovement>().move.checkOrientation();
+                int addX =0, addY = 0;
+                switch (direction)
+                {
+                    case 0:
+                        addY = 4;
+                        addX = 4;
+                        break;
+                    case 1:
+                        addX = 4;
+                        break;
+                    case 2:
+                        addY = -4;
+                        break;
+                    case 3:
+                        addX = -4;
+                        break;
+                }
+                
+                differenceX = transform.position.x - target.transform.position.x + addX + addY;
+                differenceY = transform.position.y - target.transform.position.y + addX + addY;
+                chaseTarget();
                 break;
             case 3:
                 break;
@@ -244,6 +342,7 @@ public class GhostAI : MonoBehaviour {
     void fleeingBehavior() {
         switch (ghostID) {
             case 1:
+                
                 break;
             case 2:
                 break;
@@ -251,6 +350,44 @@ public class GhostAI : MonoBehaviour {
                 break;
             case 4:
                 break;
+        }
+    }
+    
+    void chaseTarget()
+    {
+        prevDir = move.checkOppositeDirection();
+        if (differenceY < 0 && choices.Contains(0))
+        {
+            
+            move._dir = Movement.Direction.up;
+
+        }
+        else if (differenceX < 0.1f && choices.Contains(1))
+        {
+            if (Mathf.Abs(differenceX) > Mathf.Abs(differenceY))
+            {
+                move._dir = Movement.Direction.right;
+            }
+            else if (differenceY > 0.1f && choices.Contains(2))
+            {
+                move._dir = Movement.Direction.down;
+            }
+            else if (differenceY > 0.1f && !choices.Contains(2))
+            {
+                move._dir = Movement.Direction.right;
+            }
+            else
+            {
+                move._dir = Movement.Direction.right;
+            } 
+        }
+        else if (differenceY > 0.1f && choices.Contains(2))
+        {
+            move._dir = Movement.Direction.down;
+        }
+        else if (differenceX > 0.1f && choices.Contains(3))
+        {
+            move._dir = Movement.Direction.left;
         }
     }
 }

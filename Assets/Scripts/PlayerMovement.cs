@@ -7,7 +7,7 @@ using UnityEngine.SceneManagement;
 
 public class PlayerMovement : MonoBehaviour {
 
-	Movement move;
+	public Movement move;
 	Vector3 initialPosition;
 	// Use this for initialization
 	void Start () {
