@@ -21,6 +21,7 @@ public class Movement : MonoBehaviour {
     int prevDir;
 
 	public float MSpeed = 2f;
+    public int state;
 
 	private Vector2 direc= new Vector2(0f,0f);
 	private static Vector2 none= new Vector2(0f,0f);
@@ -85,13 +86,10 @@ public class Movement : MonoBehaviour {
 	public bool checkDirectionClear(Vector2 direction){
 		int y =-1 * Mathf.RoundToInt( transform.position.y);
 		int x = Mathf.RoundToInt (transform.position.x);
-
-
-
-		if (direction.x == 0 && direction.y == 1) {
+        if (direction.x == 0 && direction.y == 1) {
 			y =-1 * Mathf.FloorToInt( transform.position.y);
-			if(Map[y-1][x] == '-'|| Map[y-1][x]  == '#'){
-				return false;
+			if(Map[y-1][x] == '-'||( Map[y-1][x]  == '#' && state!=1)){
+                return false;
 			}
 		} else if(direction.x == 1 && direction.y == 0){
 			if (x == Map [0].Length - 1) {
@@ -99,13 +97,13 @@ public class Movement : MonoBehaviour {
 			}
 
 			x = Mathf.FloorToInt (transform.position.x);
-			if(Map[y][x+1] == '-' || Map[y][x+1] == '#'){
-				return false;
+			if(Map[y][x+1] == '-' || (Map[y][x+1] == '#' && state != 1)){
+                return false;
 			}
 		} else if(direction.x == 0 && direction.y == -1){
 			y =-1 * Mathf.CeilToInt( transform.position.y);
-			if(Map[y+1][x] == '-'|| Map[y+1][x] == '#'){
-				return false;
+			if(Map[y+1][x] == '-'|| (Map[y+1][x] == '#' && state!=1)){
+                return false;
 			}
 		} else if(direction.x == -1 && direction.y == 0){
 			if (x == 0) {
@@ -113,8 +111,8 @@ public class Movement : MonoBehaviour {
 			}
 
 			x = Mathf.CeilToInt (transform.position.x);
-			if(Map[y][x-1] == '-'|| Map[y][x-1] == '#'){
-				return false;
+			if(Map[y][x-1] == '-'|| (Map[y][x-1] == '#' && state != 1)){
+                return false;
 			}
 		}
 		return true;
@@ -128,8 +126,6 @@ public class Movement : MonoBehaviour {
     {
         switch (_dir)
         {
-            case Direction.still:
-                return -1;
             case Direction.down:
                 return 0;
             case Direction.up:

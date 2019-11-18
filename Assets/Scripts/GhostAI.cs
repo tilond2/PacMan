@@ -87,9 +87,10 @@ public class GhostAI : MonoBehaviour {
     // Percent chance of each coice. order is: up < right < 0 < down < left for random choice
     // These could be tunable numbers. You may or may not find this useful.
     public float[] directions = new float[4];
-    
-	//remember previous choice and make inverse illegal!
-	private int[] prevChoices = new int[4]{1,1,1,1};
+    public float[] distances = new float[4];
+    Vector2 distance;
+    //remember previous choice and make inverse illegal!
+    private int[] prevChoices = new int[4]{1,1,1,1};
 
     // This will be PacMan when chasing, or Gate, when leaving the Pit
 	public GameObject target;
@@ -149,7 +150,7 @@ public class GhostAI : MonoBehaviour {
         case (State.waiting):
             //releaseTime += Time.deltaTime;
             Debug.Log("Waiting");
-
+            move.state = 0;
             // below is some sample code showing how you deal with animations, etc.
             move._dir = Movement.Direction.still;
             if (releaseTime <= 0f)
@@ -174,21 +175,15 @@ public class GhostAI : MonoBehaviour {
 
 
         case (State.leaving):
-            if (gate.activeSelf)
-            {
-                for (int i = 0; i < gates.Length; i++)
-                {
-                    gates[i].SetActive(false);
-                }
-            }
-                getDirections();
-            gateTime += Time.deltaTime;
+            move.state = 1;
+            getDirections();
             Debug.Log("Leaving");
             target = gate;
             targetLocation = new Vector2(13.5f, -11f);
-            
-            differenceX = transform.position.x - targetLocation.x;
+                
+                differenceX = transform.position.x - targetLocation.x;
             differenceY = transform.position.y - targetLocation.y;
+                prevDir = 0;
             chaseTarget();
             if (transform.position.y >= -11f)
             {
@@ -196,26 +191,18 @@ public class GhostAI : MonoBehaviour {
             }
             break;
         case (State.active):
-            if (!gate.activeSelf && gateTime >= 1f)
-            {
-                for (int i = 0; i < gates.Length; i++)
-                {
-                    gates[i].SetActive(false);
-                }
-                gateTime = 0f;
-            }
-            else
-            {
-                gateTime += Time.deltaTime;
-            }
             target = pacMan;
             Debug.Log("Active");
             getDirections();
-            activeBehavior();
-            
+            chaseTime -= Time.deltaTime;
+            if (chaseTime < 0f)
+            {
+                activeBehavior();
+            }
+                
+            move.state = 2;
 
-            if (chaseTime > 1f) chaseTime = 0f;
-            else chaseTime += Time.deltaTime;
+            
 
 
             if (dead)
@@ -235,7 +222,7 @@ public class GhostAI : MonoBehaviour {
             Debug.Log("Entering");
             // Leaving this code in here for you.
             move._dir = Movement.Direction.still;
-
+               
             if (transform.position.x < 13.48f || transform.position.x > 13.52)
             {
                 //print ("GOING LEFT OR RIGHT");
@@ -277,6 +264,7 @@ public class GhostAI : MonoBehaviour {
 	}
     void getDirections()
     {
+        
         prevChoices = choices;
         for (int i = 0; i < 4; i++)
         {
@@ -303,6 +291,8 @@ public class GhostAI : MonoBehaviour {
         switch (ghostID) {
             //Blinky
             case 1:
+                distance.x = transform.position.x - target.transform.position.x;
+                distance.y = transform.position.y - target.transform.position.y;
                 differenceX = transform.position.x - target.transform.position.x;
                 differenceY = transform.position.y - target.transform.position.y;
                 chaseTarget();
@@ -352,15 +342,88 @@ public class GhostAI : MonoBehaviour {
                 break;
         }
     }
-    
+    float lowest(float[] inputs)
+    {
+        float lowest = inputs[0];
+        foreach (var input in inputs)
+            if (input < lowest) lowest = input;
+        return lowest;
+    }
     void chaseTarget()
     {
+        chaseTime = 0.1f;
         prevDir = move.checkOppositeDirection();
-        if (differenceY < 0 && choices.Contains(0))
+        /*
+        for (int i = 0; i < 4; i++) distances[i] = 9999f;
+        Vector2 distCopy;
+        if (choices.Contains(0))
         {
-            
-            move._dir = Movement.Direction.up;
+            distCopy.x = transform.position.x - target.transform.position.x;
+            distCopy.y = transform.position.y - target.transform.position.y + .75f;
+            distances[0] = distCopy.magnitude;
+        }
+        if (choices.Contains(1))
+        {
+            distCopy.x = differenceX + .75f;
+            distCopy.y = differenceY;
+            distances[1] = distCopy.magnitude;
+        }
+        if (choices.Contains(2))
+        {
+            distCopy.x = differenceX;
+            distCopy.y = differenceY - .75f;
+            distances[2] = distCopy.magnitude;
+        }
+        if (choices.Contains(3))
+        {
+            distCopy.x = differenceX - .75f;
+            distCopy.y = differenceY;
+            distances[3] = distCopy.magnitude;
+        }
+        float turn = lowest(distances);
+        Debug.Log("lowest = " + turn);
+        for (int i = 0; i < 4; i++)
+        {
+            if (turn == distances[i])
+            {
+                if (i == 0)
+                {
+                    move._dir = Movement.Direction.up;
+                    Debug.Log("going up " + distances[i]);
+                    break;
+                }
+                if (i == 1)
+                {
+                    move._dir = Movement.Direction.right;
+                    Debug.Log("going right " + distances[i]);
+                    break;
+                }
+                if (i == 2)
+                {
+                    move._dir = Movement.Direction.down;
+                    Debug.Log("going down = " + distances[i]);
+                    break;
+                }
+                if (i == 3)
+                {
+                    move._dir = Movement.Direction.left;
+                    Debug.Log("going left " + distances[i]);
+                    break;
+                }
+                break;
+            }
+        }
+        //prevDir = move.checkOppositeDirection();
+        */
 
+
+        
+        if (differenceY < 0.1f && choices.Contains(0))
+        {
+            if (Mathf.Abs(differenceY) > Mathf.Abs(differenceX))
+            {
+                move._dir = Movement.Direction.up;
+            }
         }
         else if (differenceX < 0.1f && choices.Contains(1))
         {
@@ -388,6 +451,14 @@ public class GhostAI : MonoBehaviour {
         else if (differenceX > 0.1f && choices.Contains(3))
         {
             move._dir = Movement.Direction.left;
+        }else if (choices.Contains(0)) move._dir = Movement.Direction.up;
+        else if (choices.Contains(1)) move._dir = Movement.Direction.right;
+        else if (choices.Contains(2)) move._dir = Movement.Direction.down;
+        else if (choices.Contains(3)) move._dir = Movement.Direction.left;
+        if (move._dir != Movement.Direction.still)
+        {
+            prevDir = move.checkOppositeDirection();
         }
+
     }
 }
